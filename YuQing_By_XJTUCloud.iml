@@ -10,8 +10,7 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="scala-sdk-2.10.4" level="application" />
-    <orderEntry type="library" name="spark-assembly-1.5.1-hadoop2.6.0" level="project" />
-    <orderEntry type="library" name="ansj_seg-2.0.8" level="project" />
-    <orderEntry type="library" name="hanlp-1.2.7" level="project" />
+    <orderEntry type="library" name="spark-assembly-1.5.1-hadoop2.6.0" level="application" />
+    <orderEntry type="library" name="lib" level="project" />
   </component>
 </module>
