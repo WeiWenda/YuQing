@@ -3,7 +3,7 @@ package org.apache.scala.abnormality
 /**
  * Created by liumeng on 15-11-20.
  */
-
+//add some texts
 import java.sql.Timestamp
 import java.util.Properties
 import org.apache.lib.Predict
