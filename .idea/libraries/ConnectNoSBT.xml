@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="ConnectNoSBT">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/out/artifacts/ConnectNoSBTJar/ConnectNoSBT.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>
