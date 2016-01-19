@@ -36,7 +36,7 @@ object Detect_ab {
     val post_topic_data = post_topicDF.map { row => (row.getString(row.fieldIndex("post_id")),
       (row.getInt(row.fieldIndex("topic_id"))))
     }.cache()
-    val post_id_list = post_topic_data.map { case (x, y) => x }.distinct().collect()
+    val post_id_list = post_topic_data.map { case (x, y) => x }.collect()
     val post_topic_array = post_topic_data.collect()
 
     //post表数据
@@ -91,13 +91,13 @@ object Detect_ab {
           }
         var ck = 0
         var dd = false
-        while (dd == false && ck < anchlist.length - 1) {
+        while (dd == false && ck < anchlist.length) {
           if (nosense(i)._4(dk).contains(anchlist(ck))) {
 
             var entitylist: String = ""
             var flag = false
             var tok = 0
-            while(flag == false && tok < HbaseIDs.length - 1)
+            while(flag == false && tok < HbaseIDs.length)
             {
               if(nosense(i)._1 == HbaseIDs(tok))
                 flag = true
