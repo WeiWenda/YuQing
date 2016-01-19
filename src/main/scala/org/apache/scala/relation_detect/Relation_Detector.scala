@@ -133,7 +133,9 @@ object Relation_Detector extends java.io.Serializable {
     def initialmatrix(x: String): Iterable[(RelationMention, Array[Int])] = {
       var illegal = 0
       //      println("The HbaseID now dealt is " + x)
-      val HbaseIDEntityList = sameHbaseIDs.apply(x).toArray
+      val HbaseIDEntityListx = sameHbaseIDs.get(x)
+      var HbaseIDEntityList = Array[EntityMention]()
+      if(!HbaseIDEntityListx.isEmpty) HbaseIDEntityList = HbaseIDEntityListx.get.toArray
       var myRela_Candia = new HashMap[RelationMention, Array[Int]]()
 
       //      println("In this text(HbaseID),we have " + HbaseIDEntityList.size + " Entities in total!")
@@ -560,7 +562,7 @@ object Relation_Detector extends java.io.Serializable {
       }
       println("relationList:" + relationList.size)
     }
-    sc.stop()
+//    sc.stop()
   }
 
 

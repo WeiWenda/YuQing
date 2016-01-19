@@ -203,7 +203,7 @@ object Detect_ab {
     property.put("password", dbpwd)
     abnorDF.write.mode(SaveMode.Append).jdbc(url, "abnormality", property)
 
-    sc.stop()
+//    sc.stop()
   }
 }
 

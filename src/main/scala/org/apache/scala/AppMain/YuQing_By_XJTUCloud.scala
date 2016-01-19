@@ -34,7 +34,7 @@ object YuQing_By_XJTUCloud {
     //Print For Debug------------------
     val abnormalityDetect_start=new Date()
     //---------------------------------
-//    Detect_ab.do_abnormalDetect("hdfs://namenode1:9000/liu/projectFile/","jdbc:mysql://"+dbIP+":3306/"+databaseName,dbuser,dbpwd,sc,sqlContext)
+    Detect_ab.do_abnormalDetect("hdfs://namenode1:9000/liu/projectFile/","jdbc:mysql://"+dbIP+":3306/"+databaseName,dbuser,dbpwd,sc,sqlContext)
     //Print For Debug------------------
     val relationDetect_start=new Date()
     //---------------------------------
