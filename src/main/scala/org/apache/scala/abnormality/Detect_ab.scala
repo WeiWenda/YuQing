@@ -132,7 +132,6 @@ object Detect_ab {
       str
     }
     }.repartition(1).cache()
-    println(feature_rdd.count())
 
     val conf = new Configuration()
     val hdfsCoreSitePath = new Path("./projectFile/core-site.xml")
