@@ -64,7 +64,9 @@ object TopicDiscover {
 
     val keywordList = keywordList_ids.map { e => (e._1, e._2.size) }.cache
 
-    val combAndCount = keywordList_ids.cartesian(keywordList_ids).filter { case (a, b) => a._1 < b._1 }.flatMap {
+    val combAndCount = keywordList_ids.cartesian(keywordList_ids)
+      .coalesce(24)
+      .filter { case (a, b) => a._1 < b._1 }.flatMap {
       case (a, b) =>
         var comb: Int = 0
         a._2.map { e => comb += b._2.count(_ == e) }
