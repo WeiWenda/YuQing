@@ -1,11 +1,12 @@
 /**
  * Created by luan on 15-11-30.
  */
-package org.apache.scala.relation_detect
+package org.apache.scala.Relation_build
 
-class Relation (val prelationType:String,val pentity1ID:Int,val pentity1Name:String,
-                       val pentity2ID:Int,val pentity2Name:String,val ptopicID:Int,
-                       val pinsertTime:String) extends Serializable {
+class Relation (val prelationID:Int,val prelationType:String,val pentity1ID:Int,val pentity1Name:String,
+                val pentity2ID:Int,val pentity2Name:String,val ptopicID:Int,
+                val pinsertTime:String) extends Serializable {
+  var relationID = prelationID
   var relationType = prelationType
   var entity1ID = pentity1ID
   var entity1Name = pentity1Name

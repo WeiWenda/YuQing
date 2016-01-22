@@ -66,7 +66,8 @@ object GetEntityMention {
 
     data.collect().foreach(
       c=>{
-        var tilte_sen = c._3.split("[,.，。！？......?!;；]")// "。", "！", "？", "，", "；", ",", ".", "!", "?", ";"
+        var tilte_sen = c._3.split("[，.?;!,。？；！]+")
+//        split("[,.，。！？......?!;；]")// "。", "！", "？", "，", "；", ",", ".", "!", "?", ";"
         var base_offset = 0
 
         for(j <- 0 to tilte_sen.length-1){
@@ -104,7 +105,8 @@ object GetEntityMention {
           base_offset = base_offset + tilte_sen(j).length + 1
         }
 
-        var con_sen = c._4.split("[,.，。！？......?!;；]")
+        var con_sen = c._4.split("[，.?;!,。？；！]+")
+//        var con_sen = c._4.split("[,.，。！？......?!;；]")
         base_offset = 0
         for(j <- 0 to con_sen.length-1){
           var segment:Segment = new CRFSegment()//.newSegment()

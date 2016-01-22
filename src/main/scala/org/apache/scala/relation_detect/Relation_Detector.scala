@@ -6,6 +6,7 @@ import java.util.Properties
 import de.bwaldvogel.liblinear.Predict
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.scala.Relation_build.Relation
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
 import org.apache.spark.sql.{SQLContext, Row, SaveMode}
 import org.apache.spark.{SparkConf, SparkContext}
@@ -42,6 +43,10 @@ object Relation_Detector extends java.io.Serializable {
 //    lazy val password = "123456"
     lazy val user = dbuser
     lazy val password = dbpwd
+    lazy val entitymention = "entitymention"
+    lazy val post = "post"
+    lazy val relation = "relation"
+    lazy val relationmention = "relationmention"
     val input_Hbase_w = Prefix_path+"Data_Relation/input_Hbase"
     val sempairList = sc.textFile(Prefix_path+"Data_Relation/sempair").cache().collect()
     val binsen = sc.textFile( Prefix_path+"Data_Relation/binsen").cache().collect()
@@ -52,7 +57,7 @@ object Relation_Detector extends java.io.Serializable {
 
     val jdbcDF = sqlContext.read.format("jdbc").options(
       Map("url" -> url, "user" -> user, "password" -> password,
-        "dbtable" -> "entitymention")).load().repartition(24)
+        "dbtable" -> entitymention)).load().repartition(24)
 
     //get results of table entitymention_98
 
@@ -84,7 +89,7 @@ object Relation_Detector extends java.io.Serializable {
 
     val documentMap = sqlContext.read.format("jdbc").options(
       Map("url" -> url, "user" -> user, "password" -> password,
-        "dbtable" -> "post")).load().repartition(24).
+        "dbtable" -> post)).load().repartition(24).
       map(x => (x(0).toString , Array(x(5).toString, x(6).toString))).cache()
 
     //post_topic_map<HbaseID,[topicIDs of Entitymention of this HbaseID]>
@@ -95,10 +100,11 @@ object Relation_Detector extends java.io.Serializable {
     var countOfDealt = 0
     var candidateList = new ArrayBuffer[RelationMention]()
     var relation_mentionList = new ArrayBuffer[RelationMention]()
-    var relationList = new ArrayBuffer[Relation]()
+    var relationListRDD = sc.parallelize(new ArrayBuffer[Relation]())
     var key = 1
 
     //-------------------------------------------------------
+    //    initialmatrix("20150401114742-583113482918240256-00000000000www.twitter.com")
     lazy val h = documentMap.flatMap [(RelationMention, Array[Int])]{ case (k, v) => initialmatrix(k) }
     lazy val R_m = h.zipWithUniqueId().collect()
     candidateList ++= R_m.map{case (k,v) => k._1}
@@ -108,23 +114,36 @@ object Relation_Detector extends java.io.Serializable {
 
     modifyMatrix()
     predicInput()
-    generateRelation()
+    lazy val relationList = generateRelation()
+    println("relationList:"+relationList.size)
+
 
     lazy val property = new Properties()
     property.put("user", user)
     property.put("password", password)
-    lazy val re_rdd = sc.parallelize(relation_mentionList).map(item => Row.apply(item.id, item.relationType,
+    lazy val remen_rdd = sc.parallelize(relation_mentionList).map(item => Row.apply(item.id, item.relationType,
       item.entitymention1ID, item.entity1Name, item.entitymention2ID, item.entity2Name, item.HbaseID,
       item.topicID.toString, item.postTime, item.insertTime))
-    lazy val schema = StructType(
+    lazy val re_rdd =sc.parallelize(relationList).map(item => Row.apply(item.relationID,item.relationType,
+      item.entity1ID,item.entity1Name, item.entity2ID,item.entity2Name,item.topicID,item.insertTime))
+
+    lazy val remen_schema = StructType(
       StructField("id", IntegerType) :: StructField("type", StringType) :: StructField("entity1mention_id", IntegerType) ::
         StructField("entity1_name", StringType) :: StructField("entity2mention_id", IntegerType) ::
         StructField("entity2_name", StringType) :: StructField("Hbase_id", StringType) ::
         StructField("topic_id", StringType) :: StructField("post_time", StringType) ::
         StructField("insert_time", StringType) :: Nil
     )
-    lazy val df = sqlContext.createDataFrame(re_rdd, schema)
-    df.write.mode(SaveMode.Append).jdbc(url, "relationmention", property)
+    lazy val re_schema = StructType(
+      StructField("id", IntegerType) ::StructField("type", StringType) ::
+        StructField("entity1_id", IntegerType) :: StructField("entity1_name", StringType) ::
+        StructField("entity2_id", IntegerType) :: StructField("entity2_name", StringType) ::
+        StructField("topic_id", IntegerType) :: StructField("insert_time", StringType) :: Nil
+    )
+    lazy val remen_df = sqlContext.createDataFrame(remen_rdd, remen_schema)
+    lazy val re_df = sqlContext.createDataFrame(re_rdd, re_schema)
+    remen_df.write.mode(SaveMode.Append).jdbc(url, relationmention, property)
+    re_df.write.mode(SaveMode.Append).jdbc(url, relation, property)
     println("sucessful!!!")
 
 
@@ -163,27 +182,6 @@ object Relation_Detector extends java.io.Serializable {
       val titleList = title.split("[，.?;!,。？；！]+")
       sentences(0) = titleList
       sentences(1) = sentenceList
-
-      //      for (i <- 0 to textList.size - 1) {
-      //        val HbaseIDString = textList(i)._1.toString
-      //        if (HbaseIDString  == x) {
-      //          ALLSentences = textList(i)._2
-      //
-      //          val content_puc = ALLSentences(1)
-      //
-      //          //split content to Array with punctuations and cut space and \n
-      //
-      //          val content = content_puc.replaceAll("[\t]", "").replaceAll("[\r\n]", "_")
-      //          //          println("content:" + content)
-      //          val title = ALLSentences(0).replaceAll("[\t]", "").replaceAll("[\r\n]", "_")
-      //          var tempList = new ArrayBuffer[String]()
-      //          val puncPositonList = new ArrayBuffer[Int]()
-      //          val sentenceList = content.split("[，.?;!,。？；！]+")
-      //          val titleList = title.split("[，.?;!,。？；！]+")
-      //          sentences(0) = titleList
-      //          sentences(1) = sentenceList
-      //        }
-      //      }
 
       if (HbaseIDEntityList.size == 1 || HbaseIDEntityList.isEmpty) {
         illegal = 1
@@ -261,8 +259,6 @@ object Relation_Detector extends java.io.Serializable {
                 //build the feature vector of entity pairs
 
                 val vector = buildFeatureVector(pore, sempairTheTwo, binList).toArray
-                //                println(vector)
-                //                matrix += vector
                 Rela_Candia += ((tmpRelation, vector))
               }
             }
@@ -341,8 +337,6 @@ object Relation_Detector extends java.io.Serializable {
         }
       }
       info += ((pore, bin.toArray))
-      //      println("pore:"+pore)
-      //      bin.foreach(b => println(b))
       info
     }
 
@@ -415,7 +409,6 @@ object Relation_Detector extends java.io.Serializable {
         for (j <- 1 to matrix(i).size - 1) {
           String += matrix(i)(j).toString + ":1" + " "
         }
-        //        println(String)
         modifyMatrix += String
       }
       val modifyRDD = sc.parallelize(modifyMatrix)
@@ -480,7 +473,7 @@ object Relation_Detector extends java.io.Serializable {
 
       var id = sqlContext.read.format("jdbc").options(
         Map("url" -> url, "user" -> user, "password" -> password,
-          "dbtable" -> "relationmention")).load().repartition(24).count().toInt + 1
+          "dbtable" -> relationmention)).load().repartition(24).count().toInt + 1
 
       for (i <- 0 to predictList.size - 1) {
         if (predictList(i) > 0) {
@@ -511,9 +504,11 @@ object Relation_Detector extends java.io.Serializable {
       println("Classification has been completed, ready to insert the database!")
     }
 
+
     def generateRelation() = {
       var eventidSet = new HashSet[Int]()
       var i = 0
+
       for (i <- 0 to relation_mentionList.size - 1) {
         var tempList = new ArrayBuffer[RelationMention]()
         var id = relation_mentionList(i).topicID
@@ -527,11 +522,20 @@ object Relation_Detector extends java.io.Serializable {
           aggregateRelation(tempList)
         }
       }
+      var relationList = relationListRDD.collect()
+      var Relation_id = sqlContext.read.format("jdbc").options(
+        Map("url" -> url, "user" -> user, "password" -> password,
+          "dbtable" -> relation)).load().repartition(24).count().toInt + 1
+      relationList.foreach(x => {
+        x.relationID = Relation_id
+        Relation_id = Relation_id + 1
+      })
+//      println("relationList.count()"+relationListRDD.count)
+      relationList
     }
 
-    def aggregateRelation(tempList: ArrayBuffer[RelationMention]): Unit = {
-      var reid = new HashSet[Int]()
-      for (k <- 0 to tempList.size - 1) {
+    def aggregateRelation(tempList: ArrayBuffer[RelationMention]): Unit = {var reid = new HashSet[Int]()
+      val colll=for (k <- 0 to tempList.size - 1) yield {
         val retype1 = tempList(k).relationType
         val entity1_name1 = tempList(k).entity1Name
         val entity2_name1 = tempList(k).entity2Name
@@ -549,18 +553,28 @@ object Relation_Detector extends java.io.Serializable {
             }
           }
           val myRelaMen = aList(0)
-          val entity1 = entitymentions.filter(e => e.entitymention_id.toInt == myRelaMen.entitymention1ID).first()
-          val entity2 = entitymentions.filter(e => e.entitymention_id.toInt == myRelaMen.entitymention2ID).first()
-
-          if (myRelaMen.topicID >= 0) {
+          Option(myRelaMen)
+        }
+        else
+          Option.empty
+      }
+      val coOfRelationmention= sc.parallelize(colll.filter(!_.isEmpty))
+      //RDD[(Int, (Option[RelationMention], EntityMention))]
+      //     (ID , (_ ,entity1,))
+      val entity1=coOfRelationmention.keyBy(_.get.entitymention1ID)
+        .join(entitymentions.keyBy(_.entitymention_id.toInt)).reduceByKey{(a,b)=>a}.values
+      // RDD[((Option[RelationMention], EntityMention), EntityMention)]
+      //((_,entity1),entity2)
+      val entity2=entity1.keyBy(_._1.get.entitymention2ID)
+        .join(entitymentions.keyBy(_.entitymention_id.toInt)).reduceByKey{(a,b)=>a}.values
+      relationListRDD=entity2.filter(r => r._1._1.get.topicID>=0).map[Relation]{
+        case((myRelaMen_pro,entity1),entity2)=>
+          val myRelaMen=myRelaMen_pro.get
             val re_topicID = myRelaMen.topicID
             val re_relationType = myRelaMen.relationType
-            relationList += new Relation(re_relationType, entity1.entityID.toInt, entity1.name, entity2.entityID.toInt,
+            new Relation(1,re_relationType, entity1.entityID.toInt, entity1.name, entity2.entityID.toInt,
               entity2.name, re_topicID, "")
-          }
-        }
-      }
-      println("relationList:" + relationList.size)
+      }.union(relationListRDD)
     }
 //    sc.stop()
   }
